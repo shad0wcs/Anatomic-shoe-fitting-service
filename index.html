@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KolotovStep — подбор обуви</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #F7F5F2;
+  --surface:  #FFFFFF;
+  --border:   #E8E4DF;
+  --text:     #1A1816;
+  --muted:    #8A8480;
+  --accent:   #2D5A3D;
+  --accent-l: #EAF2ED;
+  --danger:   #C0392B;
+  --radius:   14px;
+  --shadow:   0 2px 16px rgba(0,0,0,0.06);
+}
+[data-theme="dark"] {
+  --bg:       #111210;
+  --surface:  #1C1E1B;
+  --border:   #2A2D28;
+  --text:     #F0EDE8;
+  --muted:    #6A6D68;
+  --accent:   #5BAF78;
+  --accent-l: #1A2E20;
+  --shadow:   0 2px 24px rgba(0,0,0,0.3);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: background .3s, color .3s; }
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 32px;
+  padding: 0 40px; height: 64px;
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  transition: background .3s, border-color .3s;
+}
+.logo { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -.5px; margin-right: auto; cursor: pointer; }
+.logo span { color: var(--accent); }
+.nav-link { font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; padding: 4px 0; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; }
+.nav-link.active { color: var(--text); border-color: var(--accent); }
+.theme-btn { width: 44px; height: 24px; background: var(--border); border-radius: 12px; border: none; cursor: pointer; position: relative; transition: background .3s; margin-left: auto; }
+.theme-btn::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; transition: transform .3s; }
+[data-theme="dark"] .theme-btn::after { transform: translateX(20px); }
+.page { display: none; }
+.page.active { display: block; }
+.hero { max-width: 900px; margin: 0 auto; padding: 80px 40px 60px; text-align: center; }
+.hero h1 { font-family: 'DM Serif Display', serif; font-size: clamp(36px,6vw,64px); line-height: 1.1; letter-spacing: -1px; margin-bottom: 20px; }
+.hero h1 em { color: var(--accent); font-style: italic; }
+.hero p { font-size: 17px; color: var(--muted); max-width: 480px; margin: 0 auto 48px; line-height: 1.7; font-weight: 300; }
+.card { max-width: 680px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transition: background .3s, border-color .3s; }
+.card-header { padding: 28px 32px 0; font-size: 13px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.drop-zone { margin: 20px 32px; border: 2px dashed var(--border); border-radius: 10px; padding: 48px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; position: relative; }
+.drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: var(--accent-l); }
+.drop-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { width: 48px; height: 48px; margin: 0 auto 16px; background: var(--accent-l); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.drop-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.8; }
+.drop-zone h3 { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+.drop-zone p { font-size: 13px; color: var(--muted); }
+.preview-img { width: 100%; max-height: 220px; object-fit: contain; border-radius: 8px; margin-top: 16px; display: none; }
+.fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; padding: 0 32px 28px; }
+.field label { display: block; font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.field select, .field input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color .2s; appearance: none; }
+.field select:focus, .field input:focus { border-color: var(--accent); }
+.submit-wrap { padding: 0 32px 32px; }
+.btn-submit { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: opacity .2s, transform .1s; }
+.btn-submit:hover { opacity: .88; }
+.btn-submit:active { transform: scale(.99); }
+.btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+.loader { display: none; padding: 48px 32px; text-align: center; }
+.loader.show { display: block; }
+.spinner { width: 36px; height: 36px; margin: 0 auto 16px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader p { font-size: 14px; color: var(--muted); }
+.results { display: none; padding: 0 32px 32px; }
+.results.show { display: block; }
+.params-row { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+.param-chip { padding: 6px 14px; background: var(--accent-l); border-radius: 20px; font-size: 13px; font-weight: 500; color: var(--accent); }
+.confidence { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.conf-bar { width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.conf-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .6s; }
+.results-title { font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+.shoe-list { display: flex; flex-direction: column; gap: 12px; }
+.shoe-card { display: flex; align-items: center; gap: 16px; padding: 16px 18px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; transition: border-color .2s, transform .15s; animation: fadeUp .4s ease both; }
+.shoe-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+@keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+.rank { width: 28px; height: 28px; flex-shrink: 0; background: var(--accent-l); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--accent); }
+.shoe-info { flex: 1; min-width: 0; }
+.shoe-name { font-size: 15px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shoe-meta { font-size: 13px; color: var(--muted); }
+.shoe-score { text-align: right; flex-shrink: 0; }
+.score-num { font-size: 20px; font-weight: 300; color: var(--accent); line-height: 1; }
+.score-label { font-size: 11px; color: var(--muted); }
+.debug-section { margin-top: 24px; }
+.debug-toggle { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--muted); font-family: inherit; display: flex; align-items: center; gap: 6px; padding: 0; }
+.debug-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; transition: transform .2s; }
+.debug-toggle.open svg { transform: rotate(90deg); }
+.debug-img-wrap { display: none; margin-top: 12px; }
+.debug-img-wrap img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.error-msg { display: none; margin: 0 32px 24px; padding: 12px 16px; background: #FEF2F2; border: 1px solid #FCA5A5; border-radius: 8px; font-size: 14px; color: var(--danger); }
+.error-msg.show { display: block; }
+.catalog-wrap { max-width: 1100px; margin: 0 auto; padding: 48px 40px; }
+.catalog-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
+.catalog-top h2 { font-family: 'DM Serif Display', serif; font-size: 36px; letter-spacing: -.5px; }
+.catalog-count { font-size: 14px; color: var(--muted); }
+.filters-bar { display: flex; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+.filter-btn { padding: 8px 18px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; transition: all .2s; }
+.filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.search-wrap { position: relative; margin-bottom: 28px; }
+.search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; stroke: var(--muted); fill: none; stroke-width: 2; }
+.search-input { width: 100%; max-width: 360px; padding: 10px 14px 10px 40px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color .2s; }
+.search-input:focus { border-color: var(--accent); }
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+.catalog-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; transition: border-color .2s, transform .15s, box-shadow .2s; animation: fadeUp .3s ease both; }
+.catalog-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+.cc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.cc-brand { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+.cc-name { font-size: 16px; font-weight: 500; line-height: 1.3; }
+.cc-badge { padding: 4px 10px; background: var(--accent-l); border-radius: 12px; font-size: 11px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+.cc-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+.cc-props { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.cc-prop { display: flex; flex-direction: column; gap: 2px; }
+.cc-prop-label { font-size: 10px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cc-prop-val { font-size: 12px; color: var(--text); }
+.cc-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
+.cc-footer { display: flex; align-items: center; justify-content: space-between; }
+.cc-gender { font-size: 12px; color: var(--muted); }
+.cc-ortho { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--accent); font-weight: 500; }
+.cc-ortho svg { width: 14px; height: 14px; stroke: var(--accent); fill: none; stroke-width: 2; }
+.catalog-empty { text-align: center; padding: 80px 40px; color: var(--muted); font-size: 15px; }
+.cat-loader { text-align: center; padding: 80px; }
+.cat-loader .spinner { margin: 0 auto; }
+footer { text-align: center; padding: 48px 40px; font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="showPage('home')">Kolotov<span>Step</span></div>
+  <div class="nav-link active" id="nav-home" onclick="showPage('home')">Подбор</div>
+  <div class="nav-link" id="nav-catalog" onclick="showPage('catalog')">Каталог</div>
+  <button class="theme-btn" onclick="toggleTheme()"></button>
+</nav>
+
+<div class="page active" id="page-home">
+  <div class="hero">
+    <h1>Обувь, созданная<br/>для <em>вашей</em> стопы</h1>
+    <p>Загрузите фото подошвы стопы — нейросеть определит параметры и подберёт подходящие модели из каталога.</p>
+  </div>
+
+  <div class="card" id="main-card">
+    <div class="card-header">Шаг 1 — загрузите фото стопы</div>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="image/jpeg,image/png" onchange="onFile(this)"/>
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      </div>
+      <h3 id="drop-label">Перетащите фото или нажмите</h3>
+      <p>JPG или PNG, вид подошвы снизу</p>
+      <img class="preview-img" id="preview" alt="Предпросмотр"/>
+    </div>
+
+    <details style="margin: 0 32px 20px; cursor:pointer;">
+      <summary style="font-size:13px;font-weight:500;color:var(--muted);list-style:none;display:flex;align-items:center;gap:6px;padding:10px 0;">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:var(--accent);fill:none;stroke-width:2;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Как правильно сфотографировать стопу?
+      </summary>
+      <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0 8px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);">
+          <span style="min-width:20px;height:20px;background:var(--accent-l);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;">1</span>
+          <span>Положите белый лист А4 на пол — он создаёт равномерный фон</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);">
+          <span style="min-width:20px;height:20px;background:var(--accent-l);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;">2</span>
+          <span>Встаньте на лист, распределите вес равномерно на обе ноги</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);">
+          <span style="min-width:20px;height:20px;background:var(--accent-l);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;">3</span>
+          <span>Держите телефон строго горизонтально над стопой на высоте 40–50 см</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);">
+          <span style="min-width:20px;height:20px;background:var(--accent-l);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;">4</span>
+          <span>Стопа должна занимать 60–70% кадра, пальцы в естественном положении</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);">
+          <span style="min-width:20px;height:20px;background:var(--accent-l);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--accent);flex-shrink:0;">5</span>
+          <span>Снимайте при дневном свете — избегайте резких теней</span>
+        </div>
+        <div style="margin-top:4px;padding:10px 12px;background:var(--accent-l);border-radius:8px;font-size:12px;color:var(--accent);">
+          Если точность ниже 70% — переснимите фото, подойдя ближе или улучшив освещение
+        </div>
+      </div>
+    </details>
+
+    <div class="fields">
+      <div class="field">
+        <label>Пол</label>
+        <select id="gender">
+          <option value="">Любой</option>
+          <option value="мужская">Мужская</option>
+          <option value="женская">Женская</option>
+          <option value="унисекс">Унисекс</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Категория</label>
+        <select id="category">
+          <option value="">Любая</option>
+          <option value="Бег">Бег</option>
+          <option value="Повседневные">Повседневные</option>
+          <option value="Тренировки">Тренировки</option>
+          <option value="Ходьба">Ходьба</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Результатов</label>
+        <input type="number" id="top-n" value="5" min="1" max="10"/>
+      </div>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+    <div class="submit-wrap">
+      <button class="btn-submit" id="btn-submit" onclick="submitRecommend()" disabled>Подобрать обувь</button>
+    </div>
+
+    <div class="loader" id="loader">
+      <div class="spinner"></div>
+      <p>Анализируем стопу…</p>
+    </div>
+
+    <div class="results" id="results">
+      <div class="params-row" id="params-row"></div>
+      <div class="results-title">Рекомендации</div>
+      <div class="shoe-list" id="shoe-list"></div>
+      <div class="debug-section">
+        <button class="debug-toggle" id="debug-toggle" onclick="toggleDebug()">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          Показать анализ изображения
+        </button>
+        <div class="debug-img-wrap" id="debug-img-wrap">
+          <img id="debug-img" alt="Визуализация"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div style="font-size:11px;opacity:.6;margin-bottom:8px;">Результаты подбора не являются медицинской рекомендацией. При наличии заболеваний стопы обратитесь к врачу-ортопеду.</div>
+    Разработка сервиса по индивидуальному подбору обуви для людей с анатомическими особенностями стопы
+  </footer>
+</div>
+
+<div class="page" id="page-catalog">
+  <div class="catalog-wrap">
+    <div class="catalog-top">
+      <div>
+        <h2>Каталог обуви</h2>
+        <div class="catalog-count" id="catalog-count">Загрузка…</div>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="search-input" placeholder="Поиск по названию…" oninput="filterCatalog()"/>
+    </div>
+
+    <div class="filters-bar" id="filters-brand"></div>
+    <div class="filters-bar" id="filters-category"></div>
+
+    <div class="cat-loader" id="cat-loader"><div class="spinner"></div></div>
+    <div class="catalog-grid" id="catalog-grid"></div>
+    <div class="catalog-empty" id="catalog-empty" style="display:none">Ничего не найдено</div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+const saved = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', saved);
+function toggleTheme() {
+  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'catalog' && !catalogLoaded) loadCatalog();
+}
+
+let selectedFile = null;
+
+const zone = document.getElementById('drop-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+
+function onFile(input) { if (input.files[0]) setFile(input.files[0]); }
+function setFile(f) {
+  selectedFile = f;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('preview');
+    img.src = e.target.result; img.style.display = 'block';
+    document.getElementById('drop-label').textContent = f.name;
+  };
+  reader.readAsDataURL(f);
+  document.getElementById('btn-submit').disabled = false;
+  hideError();
+  document.getElementById('results').classList.remove('show');
+}
+
+async function submitRecommend() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; hideError();
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loader').classList.add('show');
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  const gender = document.getElementById('gender').value;
+  const category = document.getElementById('category').value;
+  if (gender)   fd.append('gender', gender);
+  if (category) fd.append('category', category);
+  fd.append('top_n', document.getElementById('top-n').value);
+
+  try {
+    const res  = await fetch(`${API}/api/recommend`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Ошибка сервера');
+    renderResults(data);
+  } catch(e) { showError(e.message); }
+  finally {
+    document.getElementById('loader').classList.remove('show');
+    btn.disabled = false;
+  }
+}
+
+function renderResults(data) {
+  const { foot_params, recommendations, debug_image_id } = data;
+  const row = document.getElementById('params-row');
+  row.innerHTML = [
+    'Свод: ' + foot_params.arch_support,
+    'Пронация: ' + foot_params.pronation_type,
+    'Ширина: ' + foot_params.width_type,
+  ].map(l => `<div class="param-chip">${l}</div>`).join('') + `
+    <div class="confidence">Точность
+      <div class="conf-bar"><div class="conf-fill" style="width:${foot_params.confidence*100}%"></div></div>
+      ${Math.round(foot_params.confidence*100)}%
+    </div>`;
+
+  const list = document.getElementById('shoe-list');
+  list.innerHTML = recommendations.length
+    ? recommendations.map((r,i) => `
+        <div class="shoe-card" style="animation-delay:${i*60}ms">
+          <div class="rank">${r.rank}</div>
+          <div class="shoe-info">
+            <div class="shoe-name">${r.model}</div>
+            <div class="shoe-meta">${r.category} · ${r.gender}</div>
+          </div>
+          <div class="shoe-score">
+            <div class="score-num">${r.score}</div>
+            <div class="score-label">баллов</div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--muted);font-size:14px">Подходящих моделей не найдено.</p>';
+
+  if (debug_image_id) document.getElementById('debug-img').src = `${API}/api/debug/${debug_image_id}`;
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleDebug() {
+  const wrap = document.getElementById('debug-img-wrap');
+  const toggle = document.getElementById('debug-toggle');
+  const open = wrap.style.display === 'block';
+  wrap.style.display = open ? 'none' : 'block';
+  toggle.classList.toggle('open', !open);
+  toggle.lastChild.textContent = open ? ' Показать анализ изображения' : ' Скрыть анализ изображения';
+}
+function showError(msg) { const el = document.getElementById('error-msg'); el.textContent = msg; el.classList.add('show'); }
+function hideError() { document.getElementById('error-msg').classList.remove('show'); }
+
+let catalogLoaded = false;
+let allShoes = [];
+let activeBrand = '';
+let activeCategory = '';
+
+async function loadCatalog() {
+  try {
+    const [catRes, filRes] = await Promise.all([
+      fetch(`${API}/api/catalog`),
+      fetch(`${API}/api/catalog/filters`),
+    ]);
+    const catData = await catRes.json();
+    const filData = await filRes.json();
+    allShoes = catData.shoes;
+    catalogLoaded = true;
+
+    renderFilterBtns('filters-brand',    ['', ...filData.brands],     activeBrand,    v => { activeBrand = v; filterCatalog(); }, ['Все бренды', ...filData.brands]);
+    renderFilterBtns('filters-category', ['', ...filData.categories], activeCategory, v => { activeCategory = v; filterCatalog(); }, ['Все категории', ...filData.categories]);
+
+    document.getElementById('cat-loader').style.display = 'none';
+    filterCatalog();
+  } catch(e) {
+    document.getElementById('cat-loader').innerHTML = `<p style="color:var(--muted)">Ошибка загрузки. Убедитесь что сервер запущен.</p>`;
+  }
+}
+
+function renderFilterBtns(containerId, values, active, onClick, labels) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = values.map((v, i) => `
+    <button class="filter-btn ${v === active ? 'active' : ''}"
+      data-val="${v}">${labels[i]}</button>
+  `).join('');
+
+  el.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      onClick(btn.dataset.val);
+      el.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+  });
+}
+
+function filterCatalog() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = allShoes.filter(s => {
+    const matchBrand    = !activeBrand    || s.brand === activeBrand;
+    const matchCategory = !activeCategory || s.category === activeCategory;
+    const matchSearch   = !q || s.model_name.toLowerCase().includes(q) || s.brand.toLowerCase().includes(q);
+    return matchBrand && matchCategory && matchSearch;
+  });
+
+  document.getElementById('catalog-count').textContent = `${filtered.length} моделей`;
+  const grid = document.getElementById('catalog-grid');
+  const empty = document.getElementById('catalog-empty');
+
+  if (!filtered.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map((s, i) => `
+    <div class="catalog-card" style="animation-delay:${Math.min(i,12)*40}ms">
+      <div class="cc-header">
+        <div>
+          <div class="cc-brand">${s.brand}</div>
+          <div class="cc-name">${s.model_name}</div>
+        </div>
+        <div class="cc-badge">${s.category}</div>
+      </div>
+      <div class="cc-desc">${s.description || '—'}</div>
+      <div class="cc-props">
+        <div class="cc-prop"><span class="cc-prop-label">Свод</span><span class="cc-prop-val">${s.arch_support}</span></div>
+        <div class="cc-prop"><span class="cc-prop-label">Пронация</span><span class="cc-prop-val">${s.pronation_type}</span></div>
+        <div class="cc-prop"><span class="cc-prop-label">Ширина</span><span class="cc-prop-val">${s.width_type}</span></div>
+        <div class="cc-prop"><span class="cc-prop-label">Амортизация</span><span class="cc-prop-val">${s.cushioning_level}</span></div>
+        <div class="cc-prop"><span class="cc-prop-label">Поверхность</span><span class="cc-prop-val">${s.surface_type}</span></div>
+      </div>
+      <div class="cc-divider"></div>
+      <div class="cc-footer">
+        <div class="cc-gender">${s.gender}</div>
+        ${s.is_ortho_friendly ? `<div class="cc-ortho"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Ортопедическая</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

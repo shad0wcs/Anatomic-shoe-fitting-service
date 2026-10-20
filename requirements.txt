@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+tensorflow
+keras
+opencv-python
+Pillow
+mysql-connector-python
+python-multipart
+python-dotenv
+numpy

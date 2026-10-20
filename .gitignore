@@ -1,0 +1,21 @@
+# Окружение
+.env
+__pycache__/
+*.pyc
+*.pyo
+
+# Модели
+models/
+*.keras
+*.h5
+
+# Датасет
+dataset/
+real_feet/
+
+# Временные файлы
+tmp/
+
+# IDE
+.vscode/
+.idea/
